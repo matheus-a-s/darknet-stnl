@@ -1,11 +1,25 @@
-#!/usr/bin/env python3
-
+#!python3
 """
 Python 3 wrapper for identifying objects in images
 
-Running the script requires opencv-python to be installed (`pip install opencv-python`)
+Requires DLL compilation
+
+Both the GPU and no-GPU version should be compiled; the no-GPU version should be renamed "yolo_cpp_dll_nogpu.dll".
+
+On a GPU system, you can force CPU evaluation by any of:
+
+- Set global variable DARKNET_FORCE_CPU to True
+- Set environment variable CUDA_VISIBLE_DEVICES to -1
+- Set environment variable "FORCE_CPU" to "true"
+- Set environment variable "DARKNET_PATH" to path darknet lib .so (for Linux)
+
 Directly viewing or returning bounding-boxed images requires scikit-image to be installed (`pip install scikit-image`)
-Use pip3 instead of pip on some systems to be sure to install modules for python3
+
+Original *nix 2.7: https://github.com/pjreddie/darknet/blob/0f110834f4e18b30d5f101bf8f1724c34b7b83db/python/darknet.py
+Windows Python 2.7 version: https://github.com/AlexeyAB/darknet/blob/fc496d52bf22a0bb257300d3c79be9cd80e722cb/build/darknet/x64/darknet.py
+
+@author: Philip Kahn
+@date: 20180503
 """
 
 from ctypes import *
@@ -24,7 +38,6 @@ class BOX(Structure):
 class DETECTION(Structure):
     _fields_ = [("bbox", BOX),
                 ("classes", c_int),
-                ("best_class_idx", c_int),
                 ("prob", POINTER(c_float)),
                 ("mask", POINTER(c_float)),
                 ("objectness", c_float),
@@ -196,21 +209,6 @@ def remove_negatives(detections, class_names, num):
                 bbox = detections[j].bbox
                 bbox = (bbox.x, bbox.y, bbox.w, bbox.h)
                 predictions.append((name, detections[j].prob[idx], (bbox)))
-    return predictions
-
-
-def remove_negatives_faster(detections, class_names, num):
-    """
-    Faster version of remove_negatives (very useful when using yolo9000)
-    """
-    predictions = []
-    for j in range(num):
-        if detections[j].best_class_idx == -1:
-            continue
-        name = class_names[detections[j].best_class_idx]
-        bbox = detections[j].bbox
-        bbox = (bbox.x, bbox.y, bbox.w, bbox.h)
-        predictions.append((name, detections[j].prob[detections[j].best_class_idx], bbox))
     return predictions
 
 
